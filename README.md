@@ -1,5 +1,7 @@
 # live-subs
 
+<img width="1126" alt="Skärmavbild 2025-02-24 kl  18 25 09" src="https://github.com/user-attachments/assets/a937a323-c346-469b-a34f-b57923952f26" />
+
 ### Vad?
 Lite cowboy-kod som funkar lite som Proof of Concept för att generera undertext med KB Whisper, helt lokalt på din dator.  
 
