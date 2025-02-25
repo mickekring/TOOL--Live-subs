@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw, ImageFont
 import platform
 import logging
 
-app_version = 0.1
+app_version = "0.1.1"
 
 # Setup logging
 logging.basicConfig(
