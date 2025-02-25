@@ -6,7 +6,7 @@ Lite cowboy-kod som funkar lite som Proof of Concept för att generera undertext
 ## Hur funkar det?
 När du kör scriptet så skapas en chroma key-grön bakgrund med storlek 1920 x 1080 pixlar. Över det 
 läggs en svart ruta där den genererade texten printas.  
-Om det är första gången du kör scriptet hämtas den modell av KB Whisper ned från Huggingface och sparas i mappen cache där du kör scriptet från. Det här kan ta en stund beroende på vilket modell du valt.  
+Om det är första gången du kör scriptet hämtas den modell av KB Whisper ned från Huggingface och sparas i mappen cache där du kör scriptet från. Det här kan ta en stund beroende på vilken modell du valt.  
 
 **Keyboard Controls:**
 
@@ -26,5 +26,5 @@ Jag ingen möjlighet att supporta detta, tyvärr. Jag kör det på en Macbook Pr
 Sen finns det en massa variabler att skruva på.
 
 ## Version 
-- v0.1.1 | Claude löste en massa problem och skrev om koden. Bland annat så att långa meningar visas fullständigt.
-- v0.02 | Init
+- v0.1.1 | Claude 3.7 löste en massa problem och skrev om koden. Bland annat så att långa meningar visas fullständigt.
+- v0.02 | Första version som jag och O1 skrev.
