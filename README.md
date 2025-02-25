@@ -13,11 +13,11 @@ Jag ingen möjlighet att supporta detta, tyvärr. Jag kör det på en Macbook Pr
 
 1. Ladda ned all kod
 2. Öppna requirements.txt och installera alla paket med pip
-3. Öppna app.py och leta rätt på 'FONT_PATH = "/Library/Fonts/Arial Unicode.ttf"' Ändra till en path till ett typsnitt på din dator 
+3. Öppna app.py och leta rätt på 'FONT_PATH' och ändra till en path till ett typsnitt på din dator 
 4. Spara och kör med 'python app.py'
 
 Sen finns det en massa variabler att skruva på.
 
 ### Version 
-0.1 // Claude löste en massa problem och skrev om koden. Bland annat så att långa meningar visas fullständigt.
-0.02 // Init
+- v0.1 | Claude löste en massa problem och skrev om koden. Bland annat så att långa meningar visas fullständigt.
+- v0.02 | Init
