@@ -19,5 +19,5 @@ Jag ingen möjlighet att supporta detta, tyvärr. Jag kör det på en Macbook Pr
 Sen finns det en massa variabler att skruva på.
 
 ### Version 
-0.1 // Claude löste en massa problem och skrev om koden
+0.1 // Claude löste en massa problem och skrev om koden. Bland annat så att långa meningar visas fullständigt.
 0.02 // Init
