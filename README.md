@@ -1,9 +1,9 @@
 # live-subs
 
-### Vad?
+## Vad?
 Lite cowboy-kod som funkar lite som Proof of Concept för att generera undertext med KB Whisper, helt lokalt på din dator.  
 
-### Hur funkar det?
+## Hur funkar det?
 När du kör scriptet så skapas en chroma key-grön bakgrund med storlek 1920 x 1080 pixlar. Över det 
 läggs en svart ruta där den genererade texten printas.  
 Om det är första gången du kör scriptet hämtas den modell av KB Whisper ned från Huggingface och sparas i mappen cache där du kör scriptet från. Det här kan ta en stund beroende på vilket modell du valt.  
@@ -15,7 +15,7 @@ P: Pause/resume transcription
 H: Show/hide control overlay  
 S: Save transcript to file
 
-### Hur gör jag för att testa?
+## Hur gör jag för att testa?
 Jag ingen möjlighet att supporta detta, tyvärr. Jag kör det på en Macbook Pro M3 Max 64GB. Python 3.12.  
 
 1. Ladda ned all kod
@@ -25,6 +25,6 @@ Jag ingen möjlighet att supporta detta, tyvärr. Jag kör det på en Macbook Pr
 
 Sen finns det en massa variabler att skruva på.
 
-### Version 
+## Version 
 - v0.1.1 | Claude löste en massa problem och skrev om koden. Bland annat så att långa meningar visas fullständigt.
 - v0.02 | Init
