@@ -1,4 +1,4 @@
-# live-subs
+# Någorlunda realtidsundertexter till video
 
 ## Vad?
 Lite cowboy-kod som funkar lite som Proof of Concept för att generera undertext med KB Whisper, helt lokalt på din dator.  
@@ -7,6 +7,8 @@ Lite cowboy-kod som funkar lite som Proof of Concept för att generera undertext
 När du kör scriptet så skapas en chroma key-grön bakgrund med storlek 1920 x 1080 pixlar. Över det 
 läggs en svart ruta där den genererade texten printas.  
 Om det är första gången du kör scriptet hämtas den modell av KB Whisper ned från Huggingface och sparas i mappen cache där du kör scriptet från. Det här kan ta en stund beroende på vilken modell du valt.  
+
+Det går definitivt att snabba upp genereringen av undertexter, men det är ingen "hit" att bara översätta ord för ord. För att få med grammatik och liknande så har jag valt att åtminstone låta det gå ett tag innan översättning sker. Så det är ett par sekunders eftersläpning, men med bättre kvalitet.
 
 **Keyboard Controls:**
 
