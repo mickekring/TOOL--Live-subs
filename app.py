@@ -341,10 +341,10 @@ def transcribe_if_not_silent(chunk, asr_pipe, threshold_db=-35):
 #####################################################
 
 def audio_processing_thread(audio_queue, asr_pipe):
-    """Process audio chunks in a separate thread to avoid blocking the UI."""
     global is_running, is_paused, processing_status
     
     buffered_segment = AudioSegment.empty()
+    silence_start_time = None
     
     # Words that may be falsely detected during silence
     excluded_texts = set(["Tack.", "Tack!", "Ja.", "Musik"])
@@ -404,6 +404,7 @@ def audio_processing_thread(audio_queue, asr_pipe):
                                         
                                 add_subtitle_text(text)
                         buffered_segment = chunks[-1]
+                        silence_start_time = None  # Reset silence timer
 
                     # 3) Forced chunk if buffer is too long
                     if len(buffered_segment) > 8000:
@@ -413,6 +414,7 @@ def audio_processing_thread(audio_queue, asr_pipe):
                             logger.info(f"Transcribed (forced): {text}")
                             add_subtitle_text(text)
                         buffered_segment = AudioSegment.empty()
+                        silence_start_time = None  # Reset silence timer
                         
                 except queue.Empty:
                     pass
@@ -421,6 +423,19 @@ def audio_processing_thread(audio_queue, asr_pipe):
                     with state_lock:
                         processing_status = "Error processing audio"
             else:
+                # Check for silence duration
+                if silence_start_time is None:
+                    silence_start_time = time.time()
+                elif time.time() - silence_start_time > args.min_silence / 1000.0:
+                    # Force transcription if silence duration exceeds threshold
+                    text = transcribe_if_not_silent(buffered_segment, asr_pipe, 
+                                                    args.silence_threshold)
+                    if text.strip() and text.strip() not in excluded_texts:
+                        logger.info(f"Transcribed (silence): {text}")
+                        add_subtitle_text(text)
+                    buffered_segment = AudioSegment.empty()
+                    silence_start_time = None  # Reset silence timer
+                
                 time.sleep(0.01)
                 
     except Exception as e:
