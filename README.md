@@ -53,6 +53,23 @@ Sen finns det en massa variabler att skruva på.
   1. Tryck på H för att visa controlls. Då ska du se text i övra vänstra hörnet som t.ex. "Status: ready". (Om inte, kanske problemet är att den inte har hittat ett typsnitt?)
   2. Kolla om du ser en grön volymbar som rör på sig när du pratar. Om inte betyder det att programmet inte får in ljud. Dubbelkolla att du har rätt mikrofon selekterad som din default mikrofon på din dator, sen starta om scriptet.
 
+### Argument
+
+Möjliga argument att ge till scriptet:
+
+- `--model`: Whisper-modell att använda (tiny/base/small/medium/large). Standard: "KBLab/kb-whisper-tiny"
+- `--language`: Språkkod för transkription (t.ex. sv, en, etc.). Standard: "sv"
+- `--width`: Bredd på utmatningsfönstret. Standard: 1920
+- `--height`: Höjd på utmatningsfönstret. Standard: 1080
+- `--fullscreen`: Kör i helskärmsläge. Standard: False
+- `--buffer_size`: Teckenbuffertstorlek för kontinuerlig text. Standard: 200
+- `--max_lines`: Maximalt antal rader att visa. Standard: 2
+- `--chars_per_line`: Maximalt antal tecken per rad. Standard: 52
+- `--silence_threshold`: Tystnadströskel i dB. Standard: -40
+- `--min_silence`: Minsta tystnadsvaraktighet i ms. Standard: 400
+- `--save_transcript`: Spara transkription till en fil. Standard: False
+- `--output`: Utmatningsfil för transkription. Standard: "transcript.txt"
+
 
 ## Version 
 - v0.1.1 | Claude 3.7 löste en massa problem och skrev om koden. Bland annat så att långa meningar visas fullständigt.
