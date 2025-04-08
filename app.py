@@ -384,6 +384,9 @@ def audio_processing_thread(audio_queue, asr_pipe):
     
     buffered_segment = AudioSegment.empty()
     silence_start_time = None
+    is_silent = False
+    last_audio_time = time.time()
+    garbage_collect_time = time.time()
     
     # Words that may be falsely detected during silence
     excluded_texts = set(["Tack.", "Tack!", "Ja.", "Musik"])
@@ -402,6 +405,7 @@ def audio_processing_thread(audio_queue, asr_pipe):
                 
             # 1) If we have data
             if not audio_queue.empty():
+                last_audio_time = time.time()
                 try:
                     data_block = audio_queue.get(timeout=0.1)
                     block_int16 = (data_block * 32767).astype(np.int16).tobytes()
@@ -414,8 +418,20 @@ def audio_processing_thread(audio_queue, asr_pipe):
                     )
                     buffered_segment += segment
                     
+                    # Check if the current segment is silent
+                    current_silence = is_chunk_silent(segment, threshold_db=args.silence_threshold)
+                    if current_silence and not is_silent:
+                        # Just started a silent period
+                        silence_start_time = time.time()
+                        is_silent = True
+                    elif not current_silence:
+                        # Not silent anymore
+                        silence_start_time = None
+                        is_silent = False
+                    
                     # Update mic level indicator
                     update_mic_level(segment)
+
 
                     # 2) Silence splitting with adaptive parameters
                     chunks = silence.split_on_silence(
@@ -462,23 +478,32 @@ def audio_processing_thread(audio_queue, asr_pipe):
                     with state_lock:
                         processing_status = "Error processing audio"
             else:
-                # Check for silence duration
-                if silence_start_time is None:
-                    silence_start_time = time.time()
-                elif time.time() - silence_start_time > args.min_silence / 1000.0:
-                    # Force transcription if silence duration exceeds threshold
-                    text = transcribe_if_not_silent(buffered_segment, asr_pipe, 
-                                                    args.silence_threshold)
-                    if text.strip() and text.strip() not in excluded_texts:
-                        logger.info(f"Transcribed (silence): {text}")
-                        add_subtitle_text(text)
-                    buffered_segment = AudioSegment.empty()
-                    silence_start_time = None  # Reset silence timer
-                    if buffered_segment.empty():
-                        gc.collect()
-                        if torch.cuda.is_available():
-                            torch.cuda.empty_cache()
-                
+                # Queue is empty, but this doesn't necessarily mean silence
+                time_since_audio = time.time() - last_audio_time
+                # Only consider it silence if we've had no audio for a while
+                if time_since_audio > 0.1:  # 100ms with no new audio
+                    if silence_start_time is None:
+                        silence_start_time = time.time()
+                        is_silent = True
+                    elif is_silent and time.time() - silence_start_time > args.min_silence / 1000.0:
+                        # Force transcription if buffer not empty
+                        if len(buffered_segment) > 0:
+                            text = transcribe_if_not_silent(buffered_segment, asr_pipe, 
+                                                            args.silence_threshold)
+                            if text.strip() and text.strip() not in excluded_texts:
+                                logger.info(f"Transcribed (silence): {text}")
+                                add_subtitle_text(text)
+                            buffered_segment = AudioSegment.empty()
+                        silence_start_time = None
+                        if time.time() - garbage_collect_time > 300:
+                            logger.info("Garbage collecting after silence")
+                            garbage_collect_time = time.time()
+                            # Perform garbage collection
+                            with state_lock:
+                                gc.collect()
+                            if torch.cuda.is_available():
+                                torch.cuda.empty_cache()
+                            log_memory_usage()
                 time.sleep(0.01)
                 
     except Exception as e:
