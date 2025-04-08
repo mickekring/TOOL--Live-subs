@@ -32,6 +32,7 @@ Jag ingen möjlighet att supporta detta, tyvärr. Jag kör det på en Macbook Pr
 6. Installera alla paket från `requirements.txt` med pip: `pip install -r requirements.txt`
 7. Öppna app.py och leta rätt på 'FONT_PATH' och ändra till en path till ett typsnitt på din dator 
 8. Spara och kör med `python app.py`
+9. När du är färdig kan du deaktivera virtual environment med `deactivate`
 
 Sen finns det en massa variabler att skruva på.
 
