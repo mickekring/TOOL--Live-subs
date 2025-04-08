@@ -535,6 +535,14 @@ def main():
     def audio_callback(indata, frames, time_info, status):
         if status:
             logger.warning(f"Audio status: {status}")
+        # Add queue size monitoring
+        queue_size = audio_queue.qsize()
+        if queue_size > 100:  # Too many unprocessed blocks
+            logger.warning(f"Audio queue overflow: {queue_size} blocks pending")
+            # Instead of filling the queue more, drop some frames
+            if queue_size > 200:
+                logger.error("Queue critically full - dropping audio data")
+                return
         audio_queue.put(indata.copy())
 
     # Start audio stream
