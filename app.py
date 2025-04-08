@@ -299,6 +299,11 @@ def setup_model():
     
     hf_logging.set_verbosity_error()
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    logger.info(f"Using device: {device}")
+    if device == "cpu":
+        logger.warning("Using CPU for processing, this may be slow.")
+    if device == "cuda:0":
+        logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     model_id = args.model
 
