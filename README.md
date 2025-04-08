@@ -74,6 +74,7 @@ Möjliga argument att ge till scriptet:
 - `--chars_per_line`: Maximalt antal tecken per rad. Standard: 52
 - `--silence_threshold`: Tystnadströskel i dB. Standard: -40
 - `--min_silence`: Minsta tystnadsvaraktighet i ms. Standard: 400
+- `--max_queue_size`: Max längd av audio kö innan den börjar tappa bitar. Standard: 50
 - `--save_transcript`: Spara transkription till en fil. Standard: False
 - `--output`: Utmatningsfil för transkription. Standard: "transcript.txt"
 
