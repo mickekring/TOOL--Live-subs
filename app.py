@@ -60,11 +60,50 @@ parser.add_argument('--silence_threshold', type=float, default=-40,
                     help='Silence threshold in dB')
 parser.add_argument('--min_silence', type=int, default=400, 
                     help='Minimum silence duration in ms')
+parser.add_argument('--max_queue_size', type=int, default=50, 
+                    help='Max size of audio queue before it starts dropping frames')
 parser.add_argument('--save_transcript', action='store_true', 
                     help='Save transcript to a file')
 parser.add_argument('--output', type=str, default="transcript.txt", 
                     help='Output file for transcript')
 args = parser.parse_args()
+
+#####################################################
+# Cancellable Transcription Control
+#####################################################
+class CancellableTranscription:
+    def __init__(self):
+        self.should_cancel = False
+        self.result = None
+        self.is_done = False
+        self.lock = threading.Lock()
+
+    def reset(self):
+        with self.lock:
+            self.should_cancel = False
+            self.result = None
+            self.is_done = False
+    
+    def check_cancellation(self):
+        with self.lock:
+            return self.should_cancel
+    
+    def cancel(self):
+        with self.lock:
+            self.should_cancel = True
+    
+    def set_result(self, result):
+        with self.lock:
+            if not self.should_cancel:
+                self.result = result
+            self.is_done = True
+    
+    def get_result(self):
+        with self.lock:
+            return self.result, self.is_done
+
+# Create a global instance
+transcription_control = CancellableTranscription()
 
 #####################################################
 # Subtitle Display Configuration
@@ -339,9 +378,74 @@ def setup_model():
             processing_status = f"Error: {str(e)[:30]}..."
         raise
 
+def transcribe_chunk_with_timeout(chunk, asr_pipe, audio_queue, timeout=30):
+    """Transcribe with timeout to prevent hanging."""
+    global transcription_control
+    result_queue = queue.Queue()
+    transcription_control.reset()
+    
+    def target_func():
+        try:
+            result = transcribe_chunk(chunk, asr_pipe)
+            result_queue.put(("success", result))
+        except Exception as e:
+            result_queue.put(("error", str(e)))
+    
+    thread = threading.Thread(target=target_func)
+    thread.daemon = True
+    thread.start()
+    
+    # Monitor both the transcription and the queue size
+    start_time = time.time()
+    max_queue_size = args.max_queue_size  # Threshold for queue size that indicates backlog
+    
+    while time.time() - start_time < timeout:
+        # Check if transcription completed
+        try:
+            status, result = result_queue.get(block=False)
+            if status == "error":
+                logger.error(f"Transcription error: {result}")
+                return ""
+            return result
+        except queue.Empty:
+            # Transcription still running
+            pass
+            
+        # Check queue size
+        current_queue_size = audio_queue.qsize()
+        if current_queue_size > max_queue_size:
+            logger.warning(f"Audio queue backlog detected ({current_queue_size} items) - cancelling transcription")
+            transcription_control.cancel()
+            
+            # Give a short grace period for the transcription to acknowledge cancellation
+            cancel_wait_start = time.time()
+            while time.time() - cancel_wait_start < 2.0:  # Wait up to 2 seconds
+                try:
+                    status, result = result_queue.get(block=False)
+                    if status == "error":
+                        return ""
+                    return result
+                except queue.Empty:
+                    time.sleep(0.1)
+                    
+            # If we get here, the thread didn't respond to cancellation
+            with state_lock:
+                processing_status = "Transcription cancelled due to backlog"
+            return ""
+            
+        time.sleep(0.2)  # Short sleep to prevent CPU hogging
+        
+    # Timeout reached
+    logger.error(f"Transcription timed out after {timeout} seconds")
+    transcription_control.cancel()
+    with state_lock:
+        processing_status = "Transcription timed out"
+    return ""
 
 def transcribe_chunk(chunk, asr_pipe):
     """Transcribe an audio chunk using the provided ASR pipeline."""
+    global transcription_control
+
     with state_lock:
         processing_status = "Transcribing..."
     
@@ -350,11 +454,30 @@ def transcribe_chunk(chunk, asr_pipe):
         raw_samples /= 32767.0  # Normalize to [-1.0, 1.0]
 
         audio_input = {"array": raw_samples, "sampling_rate": 16000}
-        result = asr_pipe(
-            audio_input,
-            chunk_length_s=30,
-            generate_kwargs={"task": "transcribe", "language": args.language}
-        )
+
+        # Break down the inference into smaller steps to check cancellation
+        if transcription_control.check_cancellation():
+            logger.warning("Transcription cancelled before processing")
+            return ""
+        
+        # Process in chunks to allow cancellation
+        result = None
+        try:
+            result = asr_pipe(
+                audio_input,
+                chunk_length_s=30,
+                generate_kwargs={"task": "transcribe", "language": args.language}
+            )
+        except Exception as e:
+            if transcription_control.check_cancellation():
+                logger.warning("Transcription cancelled during processing")
+                return ""
+            else:
+                raise e
+        
+        if transcription_control.check_cancellation():
+            logger.warning("Transcription cancelled after processing")
+            return ""
         
         with state_lock:
             processing_status = "Ready"
@@ -367,12 +490,12 @@ def transcribe_chunk(chunk, asr_pipe):
         return ""
 
 
-def transcribe_if_not_silent(chunk, asr_pipe, threshold_db=-35):
+def transcribe_if_not_silent(chunk, asr_pipe, audio_queue, threshold_db=-35):
     """Transcribe a chunk only if it's not silent."""
     if is_chunk_silent(chunk, threshold_db=threshold_db):
         return ""
     else:
-        return transcribe_chunk(chunk, asr_pipe)
+        return transcribe_chunk_with_timeout(chunk, asr_pipe, audio_queue, 30)
 
 
 #####################################################
@@ -447,7 +570,7 @@ def audio_processing_thread(audio_queue, asr_pipe):
                             if not is_running:
                                 break
                                 
-                            text = transcribe_chunk(c, asr_pipe)
+                            text = transcribe_chunk_with_timeout(c, asr_pipe, audio_queue, 30)
                             if text.strip() and text.strip() not in excluded_texts:
                                 logger.info(f"Transcribed: {text}")
                                 
@@ -463,7 +586,7 @@ def audio_processing_thread(audio_queue, asr_pipe):
 
                     # 3) Forced chunk if buffer is too long
                     if len(buffered_segment) > 8000:
-                        text = transcribe_if_not_silent(buffered_segment, asr_pipe, 
+                        text = transcribe_if_not_silent(buffered_segment, asr_pipe, audio_queue,
                                                        args.silence_threshold)
                         if text.strip() and text.strip() not in excluded_texts:
                             logger.info(f"Transcribed (forced): {text}")
@@ -488,7 +611,7 @@ def audio_processing_thread(audio_queue, asr_pipe):
                     elif is_silent and time.time() - silence_start_time > args.min_silence / 1000.0:
                         # Force transcription if buffer not empty
                         if len(buffered_segment) > 0:
-                            text = transcribe_if_not_silent(buffered_segment, asr_pipe, 
+                            text = transcribe_if_not_silent(buffered_segment, asr_pipe, audio_queue,
                                                             args.silence_threshold)
                             if text.strip() and text.strip() not in excluded_texts:
                                 logger.info(f"Transcribed (silence): {text}")
@@ -537,6 +660,11 @@ def main():
             logger.warning(f"Audio status: {status}")
         # Add queue size monitoring
         queue_size = audio_queue.qsize()
+        if queue_size > 0 and queue_size <= 100:
+            visual_bar = ""
+            for _ in range(queue_size):
+                visual_bar += '#'
+            logger.info(f"Audio queue: {queue_size} blocks pending  {visual_bar}")
         if queue_size > 100:  # Too many unprocessed blocks
             logger.warning(f"Audio queue overflow: {queue_size} blocks pending")
             # Instead of filling the queue more, drop some frames
