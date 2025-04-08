@@ -269,6 +269,17 @@ def update_mic_level(audio_chunk):
         pass  # Ignore errors in level calculation
 
 
+def log_audio_devices():
+    """Log information about available audio devices."""
+    devices = sd.query_devices()
+    #logger.info("Available audio devices:")
+    #for i, device in enumerate(devices):
+    #    logger.info(f"{i}: {device['name']} (inputs: {device['max_input_channels']}, outputs: {device['max_output_channels']})")
+    
+    default_input = sd.query_devices(kind='input')
+    logger.info(f"Using input device: {default_input['name']}")
+
+
 #####################################################
 # Setup Device and Load Model
 #####################################################
@@ -503,6 +514,7 @@ def main():
         logger.error(f"Audio stream error: {e}")
         return
     
+    log_audio_devices()
     # Start processing thread
     processing_thread = threading.Thread(
         target=audio_processing_thread,
