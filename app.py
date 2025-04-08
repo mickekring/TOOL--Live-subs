@@ -14,6 +14,7 @@ import cv2
 import textwrap
 from PIL import Image, ImageDraw, ImageFont
 import platform
+import gc
 import logging
 from colorama import init, Fore, Style
 init() # Initialize colorama
@@ -451,6 +452,10 @@ def audio_processing_thread(audio_queue, asr_pipe):
                         add_subtitle_text(text)
                     buffered_segment = AudioSegment.empty()
                     silence_start_time = None  # Reset silence timer
+                    if buffered_segment.empty():
+                        gc.collect()
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
                 
                 time.sleep(0.01)
                 
