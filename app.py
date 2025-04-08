@@ -15,15 +15,31 @@ import textwrap
 from PIL import Image, ImageDraw, ImageFont
 import platform
 import logging
+from colorama import init, Fore, Style
+init() # Initialize colorama
 
 app_version = "0.1.1"
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger('subtitle_generator')
+def setup_colored_logger():
+    class ColoredFormatter(logging.Formatter):
+        def format(self, record):
+            if record.levelno == logging.WARNING:
+                record.msg = f"{Fore.YELLOW}{record.msg}{Style.RESET_ALL}"
+            elif record.levelno == logging.ERROR:
+                record.msg = f"{Fore.RED}{record.msg}{Style.RESET_ALL}"
+            elif record.levelno == logging.INFO:
+                record.msg = f"{Fore.GREEN}{record.msg}{Style.RESET_ALL}"
+            return super().format(record)
+    
+    handler = logging.StreamHandler()
+    handler.setFormatter(ColoredFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger = logging.getLogger('subtitle_generator')
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    return logger
+
+logger = setup_colored_logger()
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Real-time subtitle generator')
