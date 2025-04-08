@@ -279,6 +279,12 @@ def log_audio_devices():
     default_input = sd.query_devices(kind='input')
     logger.info(f"Using input device: {default_input['name']}")
 
+def log_memory_usage():
+    if torch.cuda.is_available():
+        allocated = torch.cuda.memory_allocated() / 1024**3
+        reserved = torch.cuda.memory_reserved() / 1024**3
+        logger.info(f"GPU Memory: {allocated:.2f}GB allocated, {reserved:.2f}GB reserved")
+
 
 #####################################################
 # Setup Device and Load Model
@@ -515,6 +521,8 @@ def main():
         return
     
     log_audio_devices()
+    log_memory_usage()
+    
     # Start processing thread
     processing_thread = threading.Thread(
         target=audio_processing_thread,
