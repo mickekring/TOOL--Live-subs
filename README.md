@@ -32,6 +32,7 @@ Jag ingen möjlighet att supporta detta, tyvärr. Jag kör det på en Macbook Pr
 6. Installera alla paket från `requirements.txt` med pip: `pip install -r requirements.txt`
 7. Öppna app.py och leta rätt på 'FONT_PATH' och ändra till en path till ett typsnitt på din dator 
 8. Spara och kör med `python app.py`
+9. När du är färdig kan du deaktivera virtual environment med `deactivate`
 
 Sen finns det en massa variabler att skruva på.
 
@@ -52,6 +53,12 @@ Sen finns det en massa variabler att skruva på.
 - Scriptet körs men jag ser inga undertexter.
   1. Tryck på H för att visa controlls. Då ska du se text i övra vänstra hörnet som t.ex. "Status: ready". (Om inte, kanske problemet är att den inte har hittat ett typsnitt?)
   2. Kolla om du ser en grön volymbar som rör på sig när du pratar. Om inte betyder det att programmet inte får in ljud. Dubbelkolla att du har rätt mikrofon selekterad som din default mikrofon på din dator, sen starta om scriptet.
+- Programmet använder sig av CPU istället för GPU
+  1. Testa om du har ett NVIDIA grafikkort med `nvidia-smi`
+  2. Ladda ner och installera CUDA från https://developer.nvidia.com/cuda-downloads
+  3. Ladda ner cuDNN Library från https://developer.nvidia.com/cudnn
+  4. Kolla upp här vilken version av pytorch du ska installera baserad på din plattform, och CUDA version: https://pytorch.org/get-started/locally/ och kör resulterande kommando
+
 
 ### Argument
 

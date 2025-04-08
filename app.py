@@ -14,16 +14,33 @@ import cv2
 import textwrap
 from PIL import Image, ImageDraw, ImageFont
 import platform
+import gc
 import logging
+from colorama import init, Fore, Style
+init() # Initialize colorama
 
 app_version = "0.1.1"
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger('subtitle_generator')
+def setup_colored_logger():
+    class ColoredFormatter(logging.Formatter):
+        def format(self, record):
+            if record.levelno == logging.WARNING:
+                record.msg = f"{Fore.YELLOW}{record.msg}{Style.RESET_ALL}"
+            elif record.levelno == logging.ERROR:
+                record.msg = f"{Fore.RED}{record.msg}{Style.RESET_ALL}"
+            elif record.levelno == logging.INFO:
+                record.msg = f"{Fore.GREEN}{record.msg}{Style.RESET_ALL}"
+            return super().format(record)
+    
+    handler = logging.StreamHandler()
+    handler.setFormatter(ColoredFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger = logging.getLogger('subtitle_generator')
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+    return logger
+
+logger = setup_colored_logger()
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Real-time subtitle generator')
@@ -252,6 +269,23 @@ def update_mic_level(audio_chunk):
         pass  # Ignore errors in level calculation
 
 
+def log_audio_devices():
+    """Log information about available audio devices."""
+    devices = sd.query_devices()
+    #logger.info("Available audio devices:")
+    #for i, device in enumerate(devices):
+    #    logger.info(f"{i}: {device['name']} (inputs: {device['max_input_channels']}, outputs: {device['max_output_channels']})")
+    
+    default_input = sd.query_devices(kind='input')
+    logger.info(f"Using input device: {default_input['name']}")
+
+def log_memory_usage():
+    if torch.cuda.is_available():
+        allocated = torch.cuda.memory_allocated() / 1024**3
+        reserved = torch.cuda.memory_reserved() / 1024**3
+        logger.info(f"GPU Memory: {allocated:.2f}GB allocated, {reserved:.2f}GB reserved")
+
+
 #####################################################
 # Setup Device and Load Model
 #####################################################
@@ -265,6 +299,11 @@ def setup_model():
     
     hf_logging.set_verbosity_error()
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    logger.info(f"Using device: {device}")
+    if device == "cpu":
+        logger.warning("Using CPU for processing, this may be slow.")
+    if device == "cuda:0":
+        logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     model_id = args.model
 
@@ -435,6 +474,10 @@ def audio_processing_thread(audio_queue, asr_pipe):
                         add_subtitle_text(text)
                     buffered_segment = AudioSegment.empty()
                     silence_start_time = None  # Reset silence timer
+                    if buffered_segment.empty():
+                        gc.collect()
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
                 
                 time.sleep(0.01)
                 
@@ -481,6 +524,9 @@ def main():
     except Exception as e:
         logger.error(f"Audio stream error: {e}")
         return
+    
+    log_audio_devices()
+    log_memory_usage()
     
     # Start processing thread
     processing_thread = threading.Thread(
