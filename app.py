@@ -48,6 +48,8 @@ parser.add_argument('--model', type=str, default="KBLab/kb-whisper-tiny",
                     help='Whisper model to use (tiny/base/small/medium/large)')
 parser.add_argument('--language', type=str, default="sv", 
                     help='Language code for transcription (e.g., sv, en, etc.)')
+parser.add_argument('--task', type=str, default="transcribe", 
+                    help='transcribe or translate')
 parser.add_argument('--width', type=int, default=1920, help='Width of output window')
 parser.add_argument('--height', type=int, default=1080, help='Height of output window')
 parser.add_argument('--fullscreen', action='store_true', help='Run in fullscreen mode')
@@ -463,10 +465,13 @@ def transcribe_chunk(chunk, asr_pipe):
         # Process in chunks to allow cancellation
         result = None
         try:
+            generate_kwargs={"task": args.task, "language": args.language}
+            if args.language == "multi":
+                generate_kwargs["language"] = None
             result = asr_pipe(
                 audio_input,
                 chunk_length_s=30,
-                generate_kwargs={"task": "transcribe", "language": args.language}
+                generate_kwargs=generate_kwargs
             )
         except Exception as e:
             if transcription_control.check_cancellation():

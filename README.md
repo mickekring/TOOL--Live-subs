@@ -66,6 +66,7 @@ Möjliga argument att ge till scriptet:
 
 - `--model`: Whisper-modell att använda (tiny/base/small/medium/large). Standard: "KBLab/kb-whisper-tiny"
 - `--language`: Språkkod för transkription (t.ex. sv, en, etc.). Standard: "sv"
+- `--task`: Om den ska transkribera eller översätta. (Välj "transcribe" eller "translate") standard: "transcribe"
 - `--width`: Bredd på utmatningsfönstret. Standard: 1920
 - `--height`: Höjd på utmatningsfönstret. Standard: 1080
 - `--fullscreen`: Kör i helskärmsläge. Standard: False
