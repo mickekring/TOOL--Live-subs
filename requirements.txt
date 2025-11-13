@@ -1,5 +1,5 @@
 
-torch == 2.6.0
+torch == 2.7.1-rc1
 numpy == 1.26.4
 sounddevice == 0.5.1
 pydub == 0.25.1
