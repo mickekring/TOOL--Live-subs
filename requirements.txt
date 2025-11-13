@@ -3,6 +3,6 @@ torch == 2.6.0
 numpy == 1.26.4
 sounddevice == 0.5.1
 pydub == 0.25.1
-transformers == 4.49.0
+transformers == 4.50.0
 opencv-python-headless == 4.11.0.86
 pillow == 11.1.0
